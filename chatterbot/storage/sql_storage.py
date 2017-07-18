@@ -25,21 +25,12 @@ try:
                 statement.add_response(response.get_response())
             return statement
 
-        def get_statement_serialized(context):
-            params = context.current_parameters
-            del params['text_search']
-            return json.dumps(params)
-
         text = Column(String, unique=True)
         extra_data = Column(PickleType)
 
         in_response_to = relationship(
             'ResponseTable',
             back_populates='statement_table'
-        )
-        text_search = Column(
-            String,
-            default=get_statement_serialized
         )
 
     class ResponseTable(Base):
@@ -52,11 +43,6 @@ try:
 
         __tablename__ = 'ResponseTable'
 
-        def get_reponse_serialized(context):
-            params = context.current_parameters
-            del params['text_search']
-            return json.dumps(params)
-
         text = Column(String)
         occurrence = Column(Integer, default=1)
         statement_text = Column(String, ForeignKey('StatementTable.text'))
@@ -66,10 +52,6 @@ try:
             back_populates='in_response_to',
             cascade='all',
             uselist=False
-        )
-        text_search = Column(
-            String,
-            default=get_reponse_serialized
         )
 
         def get_response(self):
@@ -229,10 +211,10 @@ class SQLStorageAdapter(StorageAdapter):
                             _query = _response_query.filter(StatementTable.in_response_to == None)  # NOQA
                 else:
                     if _query:
-                        _query = _query.filter(ResponseTable.text_search.like('%' + _filter + '%'))
+                        _query = _query.filter(ResponseTable.statement_text.like('%' + _filter + '%'))
                     else:
                         _response_query = session.query(ResponseTable)
-                        _query = _response_query.filter(ResponseTable.text_search.like('%' + _filter + '%'))
+                        _query = _response_query.filter(ResponseTable.statement_text.like('%' + _filter + '%'))
 
                 if _query is None:
                     return []
